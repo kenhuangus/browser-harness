@@ -379,10 +379,9 @@ def _run(args):
         code = sys.stdin.read()
         if not code.strip():
             sys.exit(USAGE)
-    # Security: prompt-injection detection on input (fail fast, before any browser work).
-    if not security.guard_input(code):
-        sys.exit(1)
-
+        # Security: prompt-injection detection on input (fail fast, before any browser work).
+        if not security.guard_input(code):
+            sys.exit(1)
     else:
         sys.exit(USAGE)
     print_update_banner()
