@@ -29,7 +29,8 @@ from .admin import (
     stop_remote_daemon,
     sync_local_profile,
 )
-from . import auth, recorder, telemetry
+from . import auth, recorder, telemetry, security
+from .security import detect as detect_prompt_injection, scan_input, scan_output, guard_input
 from .helpers import *
 
 HELP = """Browser Harness
@@ -378,6 +379,10 @@ def _run(args):
         code = sys.stdin.read()
         if not code.strip():
             sys.exit(USAGE)
+    # Security: prompt-injection detection on input (fail fast, before any browser work).
+    if not security.guard_input(code):
+        sys.exit(1)
+
     else:
         sys.exit(USAGE)
     print_update_banner()
@@ -406,7 +411,18 @@ def _run(args):
             print(f"browser-harness: {e}", file=sys.stderr)
             sys.exit(1)
     _install_helper_trace()
-    exec(code, globals())
+    # Security: tee stdout to scan output for prompt-injection patterns.
+    _orig_stdout = sys.stdout
+    _tee = security.Tee(_orig_stdout)
+    sys.stdout = _tee
+    try:
+        exec(code, globals())
+    finally:
+        sys.stdout = _orig_stdout
+        _out = _tee.getvalue()
+        _susp, _findings = security.scan_output(_out)
+        if _susp:
+            print("browser-harness SECURITY: potential prompt injection detected in output (" + ", ".join(_findings) + ").", file=sys.stderr)
 
 
 if __name__ == "__main__":

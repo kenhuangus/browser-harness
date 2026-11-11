@@ -102,13 +102,21 @@ def _install_id(config: dict | None = None, *, create: bool = True) -> str | Non
 def is_enabled() -> bool:
     if _env_disabled():
         return False
-    return not bool(_load_config().get("disabled"))
+    config = _load_config()
+    # Secure default: telemetry is OFF unless explicitly enabled.
+    if config.get("disabled", True):
+        return False
+    return bool(config.get("enabled", False))
 
 
 def status() -> dict:
     config = _load_config()
     env_disabled = _env_disabled()
-    enabled = not env_disabled and not bool(config.get("disabled"))
+    if "disabled" in config:
+        config_disabled = bool(config.get("disabled"))
+    else:
+        config_disabled = True
+    enabled = (not env_disabled) and (not config_disabled) and bool(config.get("enabled", False))
     return {
         "enabled": enabled,
         "disabled_by_env": env_disabled,
@@ -121,6 +129,7 @@ def status() -> dict:
 def set_enabled(enabled: bool) -> dict:
     config = _load_config()
     config["disabled"] = not enabled
+    config["enabled"] = enabled
     _save_config(config)
     return status()
 

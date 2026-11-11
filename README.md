@@ -121,3 +121,23 @@ Bug fixes, documentation improvements, and agent-generated domain skills are wel
 ---
 
 [The Bitter Lesson of Agent Harnesses](https://browser-use.com/posts/bitter-lesson-agent-harnesses) · [Web Agents That Actually Learn](https://browser-use.com/posts/web-agents-that-actually-learn)
+## Security (this fork)
+
+This fork hardens browser-harness for safer agent use:
+
+- **Telemetry disabled by default.** No usage data is sent unless you explicitly run
+  `browser-harness telemetry enable` or set `BH_TELEMETRY=1`. The original project
+  collected anonymous telemetry by default.
+- **Prompt-injection detection on input and output.** Every code payload sent to the
+  harness and every line printed by it is scanned for common prompt-injection /
+  jailbreak patterns (instruction override, role hijacking, exfiltration attempts,
+  encoded payloads, etc.). Suspicious input blocks execution by default.
+  - `BH_SECURITY_MODE=warn` to warn instead of block.
+  - `BH_SECURITY_OVERRIDE=1` to override a block.
+  - Helpers `scan_input`, `scan_output`, `detect_prompt_injection` are available
+    to agents for explicit checks.
+- **Secure defaults preserved:** recordings off by default, remote debugging opt-in,
+  cloud auto-spawn opt-in via `BU_AUTOSPAWN`.
+
+See `src/browser_harness/security.py` for the detection rules.
+
